@@ -75,35 +75,44 @@ lockup, and a macOS `.iconset`.
 - **Wordmark font:** v1 uses Liberation Sans Bold. Drop NextLink's real brand
   font in `~/.fonts` and re-run `render_assets.py` for the final lockup.
 
+## UI strings & URLs
+
+- **"RustDesk" in UI text auto-rebrands.** `src/lang.rs` `translate()` does
+  `s.replace("RustDesk", &app_name)` whenever the app name isn't "RustDesk" — so
+  the ~1100 "RustDesk" strings across `src/lang/*.rs` render as "NextSession" at
+  runtime via `custom.txt`. Do NOT mass-edit lang files. Only literals that
+  bypass `translate()` need manual fixing (done: tab title, 2FA issuer, CLI
+  about/author).
+- **URLs** point at `nextsession.nxlink.com`; the in-app RustDesk `/docs/` help
+  links were removed (Flutter cards + sciter lang values blanked). Left alone on
+  purpose: `is_public()` / `is_custom_client()` checks that compare against
+  `"RustDesk"` / `rustdesk.com` — those are functional server-detection logic.
+
 ## Packaging rename — VM checklist (build-test each platform)
 
 Done already (zero-risk display metadata): Windows `Runner.rc` VERSIONINFO,
 `main.cpp` window-title fallback, `res/rustdesk.desktop` display fields,
 `Cargo.toml` description/authors, `flutter/pubspec.yaml` description.
 
-Remaining renames are coupled to the build and MUST be verified by compiling:
+### APPLIED in-tree (just build-verify — these are untested without a toolchain)
+- **Windows:** `flutter/windows/CMakeLists.txt` `BINARY_NAME`/`project()` →
+  `nextsession`; `build.py:450` flutter exe path → `nextsession.exe`. (`librustdesk.dll`
+  kept — loaded by name in `main.cpp`.)
+- **macOS:** `AppInfo.xcconfig` `PRODUCT_NAME` → `NextSession`; bundle ids in
+  `AppInfo.xcconfig` + `project.pbxproj` → `com.nxlink.nextsession`; `build.py`
+  flutter-dmg refs `RustDesk.app`/`rustdesk.dmg` → `NextSession.app`/`nextsession.dmg`.
+- **Android:** `build.gradle` `applicationId` → `com.nxlink.nextsession`;
+  `AndroidManifest.xml` labels → `NextSession`. (Kotlin package `com.carriez.flutter_hbb`
+  kept — code-level; verify a custom-permission build doesn't assume id==package.)
 
-### Windows (Slice 1)
-- `flutter/windows/CMakeLists.txt`: `set(BINARY_NAME "rustdesk")` → `"nextsession"`
-  and `project(rustdesk …)` → `project(nextsession …)`.
-- `build.py`: `hbb_name = 'rustdesk'` → `'nextsession'`; the portable-installer
-  step (`generate.py … -e …/rustdesk.exe`) → `nextsession.exe`. Grep `build.py`
-  for `rustdesk.exe` and the Windows installer/AppName/Publisher strings.
-- Keep `librustdesk.dll` as-is (loaded by name in `main.cpp`).
-
-### Linux (Slice 2) — rename together or not at all
+### STILL TODO — Linux (Slice 2), rename together or not at all
 `build.py` deb section + `res/` files form one set: `/usr/share/rustdesk`,
 `/etc/rustdesk`, `rustdesk.service`, `rustdesk.desktop`, `rustdesk-link.desktop`,
 `pam.d/rustdesk`, the hicolor `rustdesk.png`/`rustdesk.svg`, and the desktop
-`Exec=`/`Icon=`/`StartupWMClass=` fields. Rename all to `nextsession` in lockstep.
-
-### macOS (Slice 3)
-`build.py` create-dmg block: `RustDesk.app` → `NextSession.app`, volname, dmg
-name. Bundle id `com.carriez.*` → `com.nxlink.nextsession` in the macOS runner.
-
-### Android (Slice 4)
-`flutter/android/app/build.gradle` `applicationId` → `com.nxlink.nextsession`;
-`AndroidManifest.xml` `android:label`. Assets already regenerated.
+`Exec=`/`Icon=`/`StartupWMClass=` fields. Deferred: low user value (paths are
+invisible), high coupling. Rename all to `nextsession` in lockstep when done.
+Also not renamed by design: the cargo binary `rustdesk` and the sciter/cargo-bundle
+build paths in `build.py` (the Flutter build is primary).
 
 ### iOS (Slice 5 — spike only)
 Controller-only is the likely ceiling (Apple blocks unattended capture/input;
