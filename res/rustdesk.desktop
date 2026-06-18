@@ -1,7 +1,7 @@
 [Desktop Entry]
-Name=RustDesk
-GenericName=Remote Desktop
-Comment=Remote Desktop
+Name=NextSession
+GenericName=Remote Support
+Comment=NextLink remote support
 Exec=rustdesk %u
 Icon=rustdesk
 Terminal=false

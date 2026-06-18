@@ -56,3 +56,6 @@ vcpkg_installed
 flutter/lib/generated_plugin_registrant.dart
 libsciter.dylib
 flutter/web/
+# NextSession custom-client signing private key (never commit).
+# custom.txt itself IS committed — it's the public signed config bundled in every installer.
+branding/secrets/

@@ -2184,7 +2184,10 @@ pub fn read_custom_client(config: &str) {
         log::error!("Failed to decode custom client config");
         return;
     };
-    const KEY: &str = "5Qbwsde3unUcJBtrx9ZkvUmwFNoExHzpryHuPUdqlWM=";
+    // NextSession custom-client signing public key. Private seed lives in
+    // branding/secrets/nextsession_signing.key (gitignored); custom.txt is signed by
+    // branding/make_custom.py. Replaces RustDesk's upstream key so NextLink owns the channel.
+    const KEY: &str = "SPmhyMs6+EV5yDULj7/3Hqq1YFgpEZa+HIU3L5TJh54=";
     let Some(pk) = get_rs_pk(KEY) else {
         log::error!("Failed to parse public key of custom client");
         return;
@@ -2203,6 +2206,14 @@ pub fn read_custom_client(config: &str) {
     if let Some(app_name) = data.remove("app-name") {
         if let Some(app_name) = app_name.as_str() {
             *config::APP_NAME.write().unwrap() = app_name.to_owned();
+        }
+    }
+
+    // NextSession: data-drive the reverse-DNS org so on-disk config paths and bundle
+    // grouping follow the brand (e.g. com.nxlink) without editing the hbb_common submodule.
+    if let Some(org) = data.remove("org") {
+        if let Some(org) = org.as_str() {
+            *config::ORG.write().unwrap() = org.to_owned();
         }
     }
 
@@ -2628,6 +2639,31 @@ mod tests {
         time::{interval, interval_at, sleep, Duration, Instant, Interval},
     };
     use std::collections::HashSet;
+
+    // NextSession custom-client config, signed with branding/secrets/nextsession_signing.key
+    // and verifiable by the KEY constant in read_custom_client (public key
+    // SPmhyMs6+EV5yDULj7/3Hqq1YFgpEZa+HIU3L5TJh54=). Regenerate ONLY if the signing key
+    // rotates: see branding/make_custom.py. Payload is a fixed minimal fixture, independent
+    // of the production branding/custom_client.json, so changing server values can't break it.
+    const NEXTSESSION_CUSTOM_FIXTURE: &str = "Jnsf+RMyRvoNal40eyc9dHXb5Sfm2NvJtMCBzHb6VRV/dLEyv3CqFpd7gQHcuO9d777QdQnrDQtltrXwCZKkBnsiYXBwLW5hbWUiOiJOZXh0U2Vzc2lvbiIsIm9yZyI6ImNvbS5ueGxpbmsiLCJvdmVycmlkZS1zZXR0aW5ncyI6eyJjdXN0b20tcmVuZGV6dm91cy1zZXJ2ZXIiOiJuZXh0c2Vzc2lvbi5ueGxpbmsuY29tIn19";
+
+    #[test]
+    fn test_nextsession_custom_client() {
+        // Verifies two NextSession branding changes at once:
+        //  1. read_custom_client verifies against our signing KEY (else app-name won't apply).
+        //  2. the `org` handler sets config::ORG.
+        read_custom_client(NEXTSESSION_CUSTOM_FIXTURE);
+        assert_eq!(*config::APP_NAME.read().unwrap(), "NextSession");
+        assert_eq!(*config::ORG.read().unwrap(), "com.nxlink");
+        assert_eq!(
+            config::OVERWRITE_SETTINGS
+                .read()
+                .unwrap()
+                .get("custom-rendezvous-server")
+                .map(|s| s.as_str()),
+            Some("nextsession.nxlink.com")
+        );
+    }
 
     #[inline]
     fn get_timestamp_secs() -> u128 {
