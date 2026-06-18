@@ -1,3 +1,7 @@
 [submodule "libs/hbb_common"]
 	path = libs/hbb_common
 	url = https://github.com/rustdesk/hbb_common
+[submodule "apiserver"]
+	path = apiserver
+	url = https://github.com/phurd-nl/rustdesk-api
+	branch = nextsession-hardening
