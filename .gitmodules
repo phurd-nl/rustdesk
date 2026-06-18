@@ -5,3 +5,7 @@
 	path = apiserver
 	url = https://github.com/phurd-nl/rustdesk-api
 	branch = nextsession-hardening
+[submodule "apiserver-web"]
+	path = apiserver-web
+	url = https://github.com/phurd-nl/rustdesk-api-web
+	branch = nextsession-theme
