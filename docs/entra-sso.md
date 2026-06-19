@@ -83,4 +83,14 @@ VALUES ('entra', 'oidc', '<CLIENT_ID>', '<CLIENT_SECRET>',
    claim if you key anything off email. If the server rejects login when email is
    required, that's a small mapping tweak on our fork (`OidcUser.ToOauthUser`),
    not a redesign.
-3. Optional: set `app.disable-pwd-login: true` once SSO works, to force SSO-only.
+3. **Lock to SSO-only.** Once SSO works, disable password login (client + console):
+   set `app.disable-pwd-login: true` — or re-run `server/deploy-api.sh` with
+   `SSO_ONLY=true` (sets `RUSTDESK_API_APP_DISABLE_PWD_LOGIN=true`). The console
+   then hides the password form and, with a single provider, auto-redirects to Entra.
+
+   > **Before you flip it:** this flag also blocks the **local admin** console login,
+   > and auto-registered Entra users are *not* admins. So first sign in via Entra
+   > once (provisions your user), then — as the local admin — promote that user to
+   > admin (console → Users, or `UPDATE users SET is_admin=1 WHERE ...`). Otherwise
+   > no one can administer the console. Keep the local admin creds as break-glass
+   > (`SSO_ONLY=false` restores password login).

@@ -13,6 +13,10 @@ HBBS_VOL="${HBBS_VOL:-nextsession-hbbs-data}"     # from deploy.sh — holds id_
 API_DATA_VOL="${API_DATA_VOL:-nextsession-api-data}"
 API_PORT="${API_PORT:-21114}"
 BIND_ADDR="${BIND_ADDR:-127.0.0.1}"               # private bind; front with a TLS reverse proxy
+# SSO_ONLY=true disables password login for BOTH the client and the admin console (Entra only).
+# Leave false for the first bring-up — you need the local admin password to configure Entra and
+# promote your Entra user to admin. Re-run with SSO_ONLY=true AFTER that (see NEXT STEPS).
+SSO_ONLY="${SSO_ONLY:-false}"
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
 # ---- secrets (never bake into the image/config) ---------------------------
@@ -27,6 +31,16 @@ RS_PUB_KEY="$(podman run --rm -v "${HBBS_VOL}:/k:ro,Z" docker.io/library/busybox
 if [ -z "${RS_PUB_KEY}" ]; then
   echo "!! could not read id_ed25519.pub — run server/deploy.sh first" >&2; exit 1
 fi
+
+echo ">> building the NextSession web console (apiserver-web -> apiserver/resources/admin)"
+# resources/admin is gitignored (build output) — it MUST be regenerated here or the console
+# ships empty. This is what carries the Ticketing/UniFi theme + NextSession branding.
+( cd "${REPO_ROOT}/apiserver-web" \
+    && npm ci 2>/dev/null || npm install \
+    && npm run build \
+    && rm -rf "${REPO_ROOT}/apiserver/resources/admin" \
+    && mkdir -p "${REPO_ROOT}/apiserver/resources/admin" \
+    && cp -r dist/. "${REPO_ROOT}/apiserver/resources/admin/" )
 
 echo ">> building NextSession API image from our hardened fork (apiserver/)"
 # The fork keeps the upstream build; produce the image it expects. If the build is heavy on
@@ -52,6 +66,7 @@ podman run -d --name nextsession-api \
   -e RUSTDESK_API_RUSTDESK_KEY="${RS_PUB_KEY}" \
   -e RUSTDESK_API_APP_REGISTER=false \
   -e RUSTDESK_API_APP_WEB_SSO=true \
+  -e RUSTDESK_API_APP_DISABLE_PWD_LOGIN="${SSO_ONLY}" \
   -e RUSTDESK_API_GIN_MODE=release \
   -e RUSTDESK_API_LDAP_ENABLE=false \
   -v "${API_DATA_VOL}:/app/data:Z" \
@@ -77,4 +92,11 @@ NEXT STEPS
        redirect: https://${PUBLIC_HOST}/api/oidc/callback   (register this in Entra)
        scopes: openid profile email
   4. Clients already point at the API via custom.txt (api-server=https://${PUBLIC_HOST}).
+  5. LOCK TO ENTRA SSO ONLY (do this only after step 3 works):
+       a. Sign in once via Entra (client or console) so your user is provisioned.
+       b. As the local admin, promote that Entra user to admin (console > Users, or DB is_admin=1).
+       c. Re-run this script with SSO_ONLY=true  ->  password login is disabled for the
+          client AND the console; the console auto-redirects to Entra.
+       NOTE: this also disables the local admin password — keep these creds as break-glass
+       (re-run with SSO_ONLY=false to restore). Current run: SSO_ONLY=${SSO_ONLY}.
 NEXT

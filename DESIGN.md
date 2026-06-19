@@ -29,12 +29,29 @@ mapped onto Element Plus CSS variables in `src/styles/nextsession-theme.scss`
 
 ```bash
 cd apiserver-web && npm i && npm run build      # vite -> dist/
-# copy dist/* over apiserver/resources/web/ (served by the API at /_admin/)
+# copy dist/* into apiserver/resources/admin/ (router.go StaticFS serves it at /_admin/;
+# resources/web is the Flutter web *client*, a different thing)
 ```
 
-Still to do on the console (next slice, build-verified on the VM): NextSession
-logo on the login page + sidebar header, favicon, English default copy, and a
-pass over dialogs/tables for spacing once it's running.
+Done on the console: NextSession logo (login + register + header), favicon,
+English-default locale + "NextSession Admin" title, full Ticketing palette in
+**both** light and dark, frosted-glass surfaces (cards/dialogs/drawers) and the
+radial gradient background washes. Built (`npm run build`) and deployed into
+`apiserver/resources/admin/`. Remaining: a manual spacing/screenshot pass once
+it's running on the VM.
+
+### Brand marks & auth screens (NextVault family)
+The app icon and wordmark follow the **NextVault sibling identity**: orange-gradient
+disc + folded white **N** badge, and a `NEXT`(orange `#f49e1b`) + `SESSION`(gray
+`#8a8d90`, italic) lockup. Source icon `branding/assets/nextsession-icon.svg`;
+wordmark `apiserver-web/src/assets/wordmark.png` (badge + Liberation Sans Bold/
+BoldItalic — regenerate via `branding/render_assets.py make_wordmark`).
+
+The console **login + register** screens are a deliberate dark brand moment that
+mirrors the NextVault login: canvas `#0b1622`, frosted card `#16212e`, centered
+wordmark, **orange** primary action (`#f49e1b`, overrides the app's blue here
+only), and footer "NextSession Web · secured by Nextlink". The signed-in app
+chrome stays UniFi-light/Ticketing (above) — light app, branded dark auth.
 
 ### Client (Flutter)
 Brand color + dark theme ship via `custom.txt` (`theme: dark`, orange accent).
@@ -42,6 +59,8 @@ A deeper client restyle toward the UniFi-light palette is optional and large —
 deferred; the icon/wordmark/About are already branded.
 
 ## Honest status
-The theme override is written and committed to the fork; **the visual result
-requires the vite build** (no Node toolchain on the dev box). Build it on the
-VM/CI, drop `dist/` into `apiserver/resources/web`, and screenshot to iterate.
+The theme is written, built (Node 22 via nvm *is* on the dev box), and the
+`dist/` is deployed into `apiserver/resources/admin/`. Verified the tokens
+(primary `#0559c9`, frosted `backdrop-filter`, dark `#11141a`/`#2b8bff`)
+compiled into the CSS bundle. Not yet done: a live screenshot pass to tune
+spacing — do that once the API server is running on the VM.
