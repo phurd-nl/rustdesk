@@ -342,21 +342,39 @@ sudo systemctl daemon-reload && sudo systemctl enable nextsession-hbbs nextsessi
 
 ## 8. TLS reverse proxy on 443 → 127.0.0.1:21114
 
-The console/API must be fronted by TLS. Caddy gives automatic Let's Encrypt certs with
-the least config:
+We terminate TLS with the **existing wildcard cert** (`*.nxlink.com`, GoDaddy) — no ACME,
+no public port-80 dependency (right for a private-IP VM). The cert covers
+`nextsession.nxlink.com`.
+
+The key is a **wildcard private key** (can impersonate all of `*.nxlink.com`), so it must
+**not** live on the unencrypted root — stage it on the encrypted `/srv/nextsession` volume
+and let Caddy start after unlock.
 
 ```bash
 sudo apt install -y caddy
+sudo install -d -m750 -o caddy -g caddy /srv/nextsession/tls
+# copy full-chain.crt + nextdesk.key into /srv/nextsession/tls (scp from the build box):
+sudo chown caddy:caddy /srv/nextsession/tls/full-chain.crt /srv/nextsession/tls/nextdesk.key
+sudo chmod 640 /srv/nextsession/tls/nextdesk.key
+
 sudo tee /etc/caddy/Caddyfile >/dev/null <<'EOF'
 nextsession.nxlink.com {
+    tls /srv/nextsession/tls/full-chain.crt /srv/nextsession/tls/nextdesk.key
     reverse_proxy 127.0.0.1:21114
 }
 EOF
-sudo systemctl reload caddy
+
+# Caddy must wait for the encrypted mount (cert/key live there):
+sudo mkdir -p /etc/systemd/system/caddy.service.d
+printf '[Unit]\nRequiresMountsFor=/srv/nextsession\n' \
+  | sudo tee /etc/systemd/system/caddy.service.d/override.conf
+sudo systemctl daemon-reload && sudo systemctl restart caddy
 ```
-Requires `nextsession.nxlink.com` A-record → your /30 server IP, and 80/443 reachable
-for the ACME challenge (80 can be closed afterward if you use the TLS-ALPN challenge).
-nginx + certbot works equally well if you prefer it.
+
+**DNS:** point `nextsession.nxlink.com` at the **public edge IP** that DNATs to
+`10.2.15.74` (off-net clients need it); internal split-horizon can resolve straight to
+`10.2.15.74`. The cert validates either way (it's bound to the name, not the IP).
+Renew note: the wildcard expires **2026-12-08** — replace both files and `restart caddy`.
 
 ---
 

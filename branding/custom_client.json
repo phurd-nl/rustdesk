@@ -5,7 +5,7 @@
     "custom-rendezvous-server": "nextsession.nxlink.com",
     "relay-server": "nextsession.nxlink.com",
     "api-server": "https://nextsession.nxlink.com",
-    "key": "REPLACE_WITH_HBBS_PUBLIC_KEY"
+    "key": "w2JtGXCHTbxaw0xyS9HePUWrw+ocpXc24Ut+QH1CqV8="
   },
   "default-settings": {
     "theme": "dark"
