@@ -52,6 +52,12 @@ fi
 
 podman volume exists "${API_DATA_VOL}" || podman volume create "${API_DATA_VOL}"
 
+# Client installers served by the console Downloads page (techs only, behind login).
+# Admin drops .deb/.exe/.dmg/.apk here; mounted read-only into the container.
+DOWNLOADS_DIR="${DOWNLOADS_DIR:-/srv/nextsession/downloads}"
+mkdir -p "${DOWNLOADS_DIR}"
+echo ">> downloads dir: ${DOWNLOADS_DIR} (drop client installers here)"
+
 echo ">> starting nextsession-api on ${BIND_ADDR}:${API_PORT} (proxy 443 -> here)"
 podman rm -f nextsession-api 2>/dev/null || true
 podman run -d --name nextsession-api \
@@ -69,7 +75,9 @@ podman run -d --name nextsession-api \
   -e RUSTDESK_API_APP_DISABLE_PWD_LOGIN="${SSO_ONLY}" \
   -e RUSTDESK_API_GIN_MODE=release \
   -e RUSTDESK_API_LDAP_ENABLE=false \
+  -e RUSTDESK_API_DOWNLOADS_PATH=/app/downloads \
   -v "${API_DATA_VOL}:/app/data:Z" \
+  -v "${DOWNLOADS_DIR}:/app/downloads:ro,Z" \
   -p "${BIND_ADDR}:${API_PORT}:21114" \
   "${IMAGE}"
 
