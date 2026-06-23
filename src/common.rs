@@ -2211,10 +2211,16 @@ pub fn read_custom_client(config: &str) {
 
     // NextSession: data-drive the reverse-DNS org so on-disk config paths and bundle
     // grouping follow the brand (e.g. com.nxlink) without editing the hbb_common submodule.
+    // config::ORG only exists on macOS (it drives the bundle/config-path qualifier there);
+    // other platforms derive their branded paths from APP_NAME alone, so the write is
+    // macOS-only. The key is still consumed everywhere to keep map handling consistent.
     if let Some(org) = data.remove("org") {
+        #[cfg(target_os = "macos")]
         if let Some(org) = org.as_str() {
             *config::ORG.write().unwrap() = org.to_owned();
         }
+        #[cfg(not(target_os = "macos"))]
+        let _ = org;
     }
 
     let mut map_display_settings = HashMap::new();
@@ -2654,6 +2660,7 @@ mod tests {
         //  2. the `org` handler sets config::ORG.
         read_custom_client(NEXTSESSION_CUSTOM_FIXTURE);
         assert_eq!(*config::APP_NAME.read().unwrap(), "NextSession");
+        #[cfg(target_os = "macos")]
         assert_eq!(*config::ORG.read().unwrap(), "com.nxlink");
         assert_eq!(
             config::OVERWRITE_SETTINGS

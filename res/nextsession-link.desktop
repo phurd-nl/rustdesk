@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=NextSession
+NoDisplay=true
+MimeType=x-scheme-handler/nextsession;
+TryExec=nextsession
+Exec=nextsession %u
+Icon=nextsession
+Terminal=false
+Type=Application
+StartupNotify=false
+StartupWMClass=nextsession
