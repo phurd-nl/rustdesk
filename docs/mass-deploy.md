@@ -297,7 +297,32 @@ AB entries via the admin delete endpoint if you need to revoke discovery.
 
 ---
 
-## 6. Known gaps / TODO
+## 6. Agent updates & versioning (RMM-driven)
+
+**Decision:** agents run the **rebranded NextSession build** (server locked in
+`custom.txt`, NextLink brand, version-controlled) — they are **not** stock
+RustDesk, and they do **not** track upstream auto-update.
+
+- **Update via the RMM, not auto-update.** Unattended agents have no user to
+  click an update prompt, so RustDesk's OSS update notifier is irrelevant here.
+  Push new agent versions as an RMM job (same mechanism as the initial install;
+  the provision scripts are idempotent and safe to re-run for upgrades — Linux
+  currently skips when already installed, so an upgrade job must force-reinstall
+  the newer `.deb`).
+- **Keep agents aligned with the server.** Do not let agents drift ahead of your
+  `hbbs`/`hbbr` version — RustDesk expects client and server roughly aligned, and
+  uncontrolled version skew can break connectivity. Cut a new agent build only
+  when you adopt an upstream release you've validated against your server, then
+  roll it via RMM in the same pilot → staged pattern as §4.
+- **Why not stock clients:** stock would put RustDesk branding on endpoints,
+  leave the server config user-changeable (no `override-settings` lock), and add
+  a server-config push step to provisioning — without removing the per-device
+  password/registration work. RMM already handles "keep them current," so stock
+  buys nothing here.
+
+---
+
+## 7. Known gaps / TODO
 
 Issues found while reviewing the scripts. Fixed-in-place items are marked
 **[fixed]**; the rest need a decision or live verification before fleet rollout.
