@@ -151,12 +151,16 @@ jobs:
       - name: Swap in RustDesk's Flutter engine (required for 3.24.5 Windows)
         shell: pwsh
         run: |
+          $ErrorActionPreference = "Stop"
           flutter precache --windows
-          $engineDir = "$(dirname (dirname (Get-Command flutter).Source))/cache/artifacts/engine/windows-x64-release"
+          # Resolve the Flutter install root robustly (no bash 'dirname' in pwsh).
+          $flutterRoot = (flutter --version --machine | ConvertFrom-Json).flutterRoot
+          $engineDir = Join-Path $flutterRoot 'bin\cache\artifacts\engine\windows-x64-release'
+          Write-Host "Flutter engine dir: $engineDir"
           Invoke-WebRequest -Uri https://github.com/rustdesk/engine/releases/download/main/windows-x64-release.zip -OutFile windows-x64-release.zip
-          Expand-Archive -Path windows-x64-release.zip -DestinationPath windows-x64-release
-          # NOTE: if this path is wrong on the runner, adjust to the flutter cache engine dir.
-          Get-ChildItem windows-x64-release | Move-Item -Destination $engineDir -Force
+          Expand-Archive -Path windows-x64-release.zip -DestinationPath windows-x64-release -Force
+          New-Item -ItemType Directory -Force -Path $engineDir | Out-Null
+          Copy-Item -Path windows-x64-release\* -Destination $engineDir -Recurse -Force
 
       - name: Apply Flutter dropdown patch (3.24.x)
         shell: bash
