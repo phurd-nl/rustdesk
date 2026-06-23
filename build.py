@@ -321,6 +321,11 @@ def build_flutter_deb(version, features):
         ffi_bindgen_function_refactor()
     os.chdir('flutter')
     system2('flutter build linux --release')
+    # NextSession: ship the signed custom.txt next to the binary. The client reads
+    # it at runtime from the executable's directory; without it the client falls
+    # back to RustDesk's public servers instead of nextsession.nxlink.com.
+    if os.path.exists('../custom.txt'):
+        system2(f'cp ../custom.txt {flutter_build_dir}/custom.txt')
     system2('mkdir -p tmpdeb/usr/bin/')
     system2('mkdir -p tmpdeb/usr/share/nextsession')
     system2('mkdir -p tmpdeb/etc/nextsession/')
@@ -442,6 +447,11 @@ def build_flutter_windows(version, features, skip_portable_pack):
     os.chdir('..')
     shutil.copy2('target/release/deps/dylib_virtual_display.dll',
                  flutter_build_dir_2)
+    # NextSession: ship the signed custom.txt next to nextsession.exe (read at
+    # runtime from the exe's directory); without it the client falls back to
+    # RustDesk's public servers instead of nextsession.nxlink.com.
+    if os.path.exists('custom.txt'):
+        shutil.copy2('custom.txt', flutter_build_dir_2)
     if skip_portable_pack:
         return
     os.chdir('libs/portable')
